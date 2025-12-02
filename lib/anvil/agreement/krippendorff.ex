@@ -156,10 +156,10 @@ defmodule Anvil.Agreement.Krippendorff do
     end
   end
 
-  defp observed_disagreement(coincidence, _metric, _all_values) do
+  defp observed_disagreement(coincidence, _metric, all_values) do
     # Simplified: for other metrics, use nominal distance
     # Full implementation would use different distance functions
-    observed_disagreement(coincidence, :nominal, _all_values)
+    observed_disagreement(coincidence, :nominal, all_values)
   end
 
   defp expected_disagreement(coincidence, :nominal, all_values) do

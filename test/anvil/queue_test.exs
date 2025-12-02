@@ -1,7 +1,7 @@
 defmodule Anvil.QueueTest do
   use Supertester.ExUnitFoundation, isolation: :full_isolation
 
-  alias Anvil.{Queue, Schema, Assignment}
+  alias Anvil.{Queue, Schema}
   alias Anvil.Schema.Field
 
   setup do

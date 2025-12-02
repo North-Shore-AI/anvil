@@ -39,7 +39,7 @@ defmodule Anvil do
       {:ok, assignment} = Anvil.get_next_assignment(queue, "labeler_1")
 
       # 6. Submit label
-      {:ok, label} = Anvil.submit_label(assignment.id, %{"sentiment" => "positive"})
+      {:ok, label} = Anvil.submit_label(queue, assignment.id, %{"sentiment" => "positive"})
 
   """
 
@@ -80,16 +80,6 @@ defmodule Anvil do
   @spec get_next_assignment(pid() | atom(), String.t()) ::
           {:ok, Anvil.Assignment.t()} | {:error, term()}
   defdelegate get_next_assignment(queue, labeler_id), to: Queue
-
-  @doc """
-  Starts an assignment.
-  """
-  @spec start_assignment(String.t()) :: {:ok, Anvil.Assignment.t()} | {:error, term()}
-  def start_assignment(assignment_id) do
-    # For now, we need the queue reference
-    # In a real implementation, we'd look this up from a registry
-    {:error, :not_implemented}
-  end
 
   @doc """
   Submits a label for an assignment.
