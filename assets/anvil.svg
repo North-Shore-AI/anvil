@@ -54,7 +54,7 @@
   <g transform="translate(-2 -2)">
     <path d="M90 154 H226 C233 154 243 148 250 140 L268 126 H82 L100 140 C112 150 122 154 136 154 Z" fill="url(#anvilMetal)" opacity="0.92" transform="translate(-13 0)"/>
     <path d="M96 178 H220 L210 198 L170 206 L184 232 H124 L138 206 L102 198 Z" fill="url(#anvilMetal)"/>
-    <path d="M130 136 H214 C223 136 233 126 236 116 L240 104 H112 L118 118 C122 130 124 136 130 136 Z" fill="url(#heatEdge)" opacity="0.85"/>
+    <path d="M130 136 H214 C223 136 233 126 236 116 L240 104 H112 L118 118 C122 130 124 136 130 136 Z" fill="url(#heatEdge)" opacity="0.85" transform="translate(-14 0)"/>
     <path d="M96 178 H220 L210 198 L170 206 L184 232 H124 L138 206 L102 198 Z" fill="url(#heatEdge)" opacity="0.5"/>
     <rect x="146" y="228" width="40" height="12" rx="3" fill="#0d182a" opacity="0.7"/>
     <rect x="134" y="240" width="64" height="10" rx="3" fill="#1b2d3f" opacity="0.9"/>
