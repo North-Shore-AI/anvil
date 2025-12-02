@@ -16,7 +16,8 @@ defmodule Anvil.MixProject do
       name: "Anvil",
       source_url: @source_url,
       homepage_url: @source_url,
-      docs: docs()
+      docs: docs(),
+      dialyzer: dialyzer()
     ]
   end
 
@@ -33,6 +34,7 @@ defmodule Anvil.MixProject do
       {:ecto_sql, "~> 3.10"},
       {:postgrex, "~> 0.17"},
       {:ex_doc, "~> 0.31", only: :dev, runtime: false},
+      {:dialyxir, "~> 1.4", only: [:dev, :test], runtime: false},
       {:supertester, "~> 0.3.1", only: :test}
     ]
   end
@@ -95,6 +97,13 @@ defmodule Anvil.MixProject do
           Anvil.Storage.ETS
         ]
       ]
+    ]
+  end
+
+  defp dialyzer do
+    [
+      plt_file: {:no_warn, "priv/plts/dialyzer.plt"},
+      plt_add_apps: [:mix, :ex_unit]
     ]
   end
 end
