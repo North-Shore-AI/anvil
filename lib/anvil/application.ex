@@ -10,8 +10,14 @@ defmodule Anvil.Application do
     children = [
       # Ecto Repo for Postgres storage
       Anvil.Repo,
+      # Oban background job processing
+      {Oban, Application.fetch_env!(:anvil, Oban)},
       # Registry for queue processes
-      {Registry, keys: :unique, name: Anvil.Registry}
+      {Registry, keys: :unique, name: Anvil.Registry},
+      # Cachex for Forge sample caching
+      {Cachex, name: :forge_samples},
+      # Task supervisor for async operations
+      {Task.Supervisor, name: Anvil.TaskSupervisor}
     ]
 
     # See https://hexdocs.pm/elixir/Supervisor.html

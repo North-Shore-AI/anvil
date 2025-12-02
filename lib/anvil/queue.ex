@@ -8,7 +8,7 @@ defmodule Anvil.Queue do
   use GenServer
   require Logger
 
-  alias Anvil.{Assignment, Label, Schema, Storage}
+  alias Anvil.{Assignment, Label, Schema, Storage, Telemetry}
   alias Anvil.Queue.Policy
 
   defstruct [
@@ -136,6 +136,12 @@ defmodule Anvil.Queue do
       policy_state: policy_state
     }
 
+    # Emit queue created telemetry event
+    Telemetry.emit_queue_created(queue_id, %{
+      policy_type: policy,
+      labels_per_sample: labels_per_sample
+    })
+
     {:ok, state}
   end
 
@@ -169,25 +175,39 @@ defmodule Anvil.Queue do
     with {:ok, available_samples} <- get_available_samples(state, labeler_id),
          {:ok, sample} <-
            Policy.next_sample(state.policy, state.policy_state, labeler_id, available_samples) do
-      assignment =
-        Assignment.new(
-          sample_id: sample.id,
-          labeler_id: labeler_id,
-          queue_id: state.queue_id
-        )
+      # Wrap assignment dispatch in telemetry span
+      Telemetry.span_assignment_dispatch(
+        %{queue_id: state.queue_id, labeler_id: labeler_id, policy_type: state.policy},
+        fn ->
+          assignment =
+            Assignment.new(
+              sample_id: sample.id,
+              labeler_id: labeler_id,
+              queue_id: state.queue_id
+            )
 
-      {:ok, new_storage_state} =
-        state.storage_module.put_assignment(state.storage_state, assignment)
+          {:ok, new_storage_state} =
+            state.storage_module.put_assignment(state.storage_state, assignment)
 
-      new_policy_state = Policy.update_state(state.policy, state.policy_state, sample)
+          new_policy_state = Policy.update_state(state.policy, state.policy_state, sample)
 
-      new_state = %{
-        state
-        | storage_state: new_storage_state,
-          policy_state: new_policy_state
-      }
+          new_state = %{
+            state
+            | storage_state: new_storage_state,
+              policy_state: new_policy_state
+          }
 
-      {:reply, {:ok, assignment}, new_state}
+          # Emit assignment created event
+          Telemetry.emit_assignment_created(assignment.id, %{
+            queue_id: state.queue_id,
+            labeler_id: labeler_id,
+            sample_id: sample.id
+          })
+
+          {{:reply, {:ok, assignment}, new_state},
+           %{sample_id: sample.id, eligible_samples: length(available_samples)}}
+        end
+      )
     else
       {:error, reason} -> {:reply, {:error, reason}, state}
     end
@@ -208,23 +228,43 @@ defmodule Anvil.Queue do
 
   @impl true
   def handle_call({:submit_label, assignment_id, values}, _from, state) do
-    with {:ok, assignment, storage_state} <-
-           state.storage_module.get_assignment(state.storage_state, assignment_id),
-         {:ok, validated_values} <- Schema.validate(state.schema, values),
-         labeling_time <- Assignment.labeling_time_seconds(assignment),
-         label <- create_label(assignment, validated_values, labeling_time),
-         {:ok, storage_state} <- state.storage_module.put_label(storage_state, label),
-         {:ok, completed_assignment} <- Assignment.complete(assignment, label.id),
-         {:ok, new_storage_state} <-
-           state.storage_module.put_assignment(storage_state, completed_assignment) do
-      {:reply, {:ok, label}, %{state | storage_state: new_storage_state}}
-    else
-      {:error, errors} when is_list(errors) ->
-        {:reply, {:error, {:validation_failed, errors}}, state}
+    # Wrap label submission in telemetry span
+    Telemetry.span_label_submit(
+      %{assignment_id: assignment_id, queue_id: state.queue_id},
+      fn ->
+        with {:ok, assignment, storage_state} <-
+               state.storage_module.get_assignment(state.storage_state, assignment_id),
+             {:ok, validated_values} <- Schema.validate(state.schema, values),
+             labeling_time <- Assignment.labeling_time_seconds(assignment),
+             label <- create_label(assignment, validated_values, labeling_time),
+             {:ok, storage_state} <- state.storage_module.put_label(storage_state, label),
+             {:ok, completed_assignment} <- Assignment.complete(assignment, label.id),
+             {:ok, new_storage_state} <-
+               state.storage_module.put_assignment(storage_state, completed_assignment) do
+          # Emit assignment completed event
+          Telemetry.emit_assignment_completed(assignment_id, %{
+            queue_id: state.queue_id,
+            labeler_id: assignment.labeler_id,
+            labeling_time_seconds: labeling_time
+          })
 
-      {:error, reason} ->
-        {:reply, {:error, reason}, state}
-    end
+          {{:reply, {:ok, label}, %{state | storage_state: new_storage_state}},
+           %{validation_errors: 0}}
+        else
+          {:error, errors} when is_list(errors) ->
+            # Emit validation failed event
+            Telemetry.emit_label_validation_failed(assignment_id, errors, %{
+              queue_id: state.queue_id
+            })
+
+            {{:reply, {:error, {:validation_failed, errors}}, state},
+             %{validation_errors: length(errors)}}
+
+          {:error, reason} ->
+            {{:reply, {:error, reason}, state}, %{error: reason}}
+        end
+      end
+    )
   end
 
   @impl true

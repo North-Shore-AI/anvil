@@ -11,7 +11,8 @@ defmodule Anvil.Export.JSONL do
 
   alias Anvil.Export.Manifest
   alias Anvil.Repo
-  alias Anvil.Schema.{Label, Assignment}
+  alias Anvil.Schema.{Label, Assignment, SchemaVersion, Labeler}
+  alias Anvil.PII.Redactor
   import Ecto.Query
 
   @doc """
@@ -25,6 +26,8 @@ defmodule Anvil.Export.JSONL do
     * `:limit` - (optional) Maximum number of rows to export
     * `:offset` - (optional) Number of rows to skip before exporting
     * `:filter` - (optional) Additional filter criteria
+    * `:redaction_mode` - (optional) Redaction mode (`:none`, `:automatic`, `:aggressive`) (default: `:automatic`)
+    * `:use_pseudonyms` - (optional) Use labeler pseudonyms instead of IDs (default: `true`)
 
   ## Returns
 
@@ -125,6 +128,15 @@ defmodule Anvil.Export.JSONL do
 
   defp write_jsonl_file(path, queue_id, schema_version_id, opts) do
     File.open!(path, [:write, :utf8], fn file ->
+      # Load schema version for field metadata
+      schema_version = Repo.get!(SchemaVersion, schema_version_id)
+
+      field_metadata_map =
+        Anvil.PII.Retention.extract_field_metadata(schema_version.schema_definition)
+
+      redaction_mode = Map.get(opts, :redaction_mode, :automatic)
+      use_pseudonyms = Map.get(opts, :use_pseudonyms, true)
+
       # Stream labels with deterministic ordering
       query = build_export_query(queue_id, schema_version_id, opts)
 
@@ -133,7 +145,11 @@ defmodule Anvil.Export.JSONL do
           Repo.stream(query, max_rows: 1000)
           |> Stream.chunk_every(100)
           |> Stream.map(fn batch ->
-            lines = Enum.map(batch, &encode_jsonl_line/1)
+            lines =
+              Enum.map(batch, fn label ->
+                encode_jsonl_line(label, field_metadata_map, redaction_mode, use_pseudonyms)
+              end)
+
             IO.write(file, Enum.join(lines, "\n"))
 
             # Add newline after batch if not empty
@@ -178,11 +194,26 @@ defmodule Anvil.Export.JSONL do
   defp maybe_apply_offset(query, nil), do: query
   defp maybe_apply_offset(query, offset), do: from(q in query, offset: ^offset)
 
-  defp encode_jsonl_line(label) do
+  defp encode_jsonl_line(label, field_metadata_map, redaction_mode, use_pseudonyms) do
+    # Get labeler identifier (pseudonym or ID)
+    labeler_value =
+      if use_pseudonyms do
+        case Repo.get(Labeler, label.labeler_id) do
+          nil -> label.labeler_id
+          labeler -> labeler.pseudonym || label.labeler_id
+        end
+      else
+        label.labeler_id
+      end
+
+    # Apply redaction to payload
+    redacted_payload =
+      Redactor.redact_payload(label.payload || %{}, field_metadata_map, redaction_mode)
+
     data = %{
       sample_id: label.sample_id,
-      labeler_id: label.labeler_id,
-      payload: label.payload,
+      labeler_id: labeler_value,
+      payload: redacted_payload,
       submitted_at: DateTime.to_iso8601(label.submitted_at)
     }
 

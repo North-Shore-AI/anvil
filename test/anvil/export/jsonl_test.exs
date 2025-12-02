@@ -25,9 +25,9 @@ defmodule Anvil.Export.JSONLTest do
     # Create queue and schema version
     queue_id = Ecto.UUID.generate()
 
+    # Create schema version first
     {:ok, schema_version} =
       Repo.insert(%SchemaVersion{
-        id: Ecto.UUID.generate(),
         queue_id: queue_id,
         version_number: 1,
         schema_definition: %{
@@ -38,6 +38,7 @@ defmodule Anvil.Export.JSONLTest do
         }
       })
 
+    # Now create the queue with the schema version
     {:ok, queue} =
       Repo.insert(%Queue{
         id: queue_id,

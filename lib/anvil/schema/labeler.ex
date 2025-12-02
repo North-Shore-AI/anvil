@@ -8,6 +8,19 @@ defmodule Anvil.Schema.Labeler do
   use Ecto.Schema
   import Ecto.Changeset
 
+  @type t :: %__MODULE__{
+          id: Ecto.UUID.t() | nil,
+          tenant_id: Ecto.UUID.t() | nil,
+          external_id: String.t() | nil,
+          pseudonym: String.t() | nil,
+          expertise_weights: map() | nil,
+          blocklisted_queues: [Ecto.UUID.t()],
+          max_concurrent_assignments: integer(),
+          assignments: [Anvil.Schema.Assignment.t()] | Ecto.Association.NotLoaded.t(),
+          inserted_at: DateTime.t() | nil,
+          updated_at: DateTime.t() | nil
+        }
+
   @primary_key {:id, :binary_id, autogenerate: true}
   @foreign_key_type :binary_id
 
