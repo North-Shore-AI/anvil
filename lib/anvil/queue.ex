@@ -110,13 +110,18 @@ defmodule Anvil.Queue do
   def init(opts) do
     queue_id = Keyword.fetch!(opts, :queue_id)
     schema = Keyword.fetch!(opts, :schema)
-    policy = Keyword.get(opts, :policy, :round_robin)
-    policy_config = Keyword.get(opts, :policy_config, %{})
+    labels_per_sample = Keyword.get(opts, :labels_per_sample, 1)
+    # Use redundancy policy by default when labels_per_sample > 1
+    default_policy = if labels_per_sample > 1, do: :redundancy, else: :round_robin
+    policy = Keyword.get(opts, :policy, default_policy)
+    base_policy_config = Keyword.get(opts, :policy_config, %{})
+    # Merge labels_per_sample into policy_config for redundancy policy
+    policy_config = Map.merge(base_policy_config, %{labels_per_sample: labels_per_sample})
     storage_module = Keyword.get(opts, :storage, Storage.ETS)
     assignment_timeout = Keyword.get(opts, :assignment_timeout, 3600)
-    labels_per_sample = Keyword.get(opts, :labels_per_sample, 1)
 
     {:ok, storage_state} = storage_module.init(queue_id: queue_id)
+    {:ok, policy_state} = Policy.init_policy(policy, policy_config)
 
     state = %__MODULE__{
       queue_id: queue_id,
@@ -128,7 +133,7 @@ defmodule Anvil.Queue do
       assignment_timeout: assignment_timeout,
       labels_per_sample: labels_per_sample,
       labelers: [],
-      policy_state: %{policy_config: policy_config}
+      policy_state: policy_state
     }
 
     {:ok, state}
@@ -261,7 +266,7 @@ defmodule Anvil.Queue do
       |> Enum.filter(&(&1.status == :completed))
       |> Enum.frequencies_by(& &1.sample_id)
 
-    # Get samples that need more labels and haven't been assigned to this labeler yet
+    # Get samples that haven't been assigned to this labeler yet
     assigned_to_labeler =
       assignments
       |> Enum.filter(&(&1.labeler_id == labeler_id))

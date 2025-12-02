@@ -5,85 +5,103 @@ defmodule Anvil.Queue.Policy do
   Policies control how samples are assigned to labelers.
   """
 
+  @type policy_state :: map()
+  @type sample :: map()
+
+  @callback init(config :: map()) :: {:ok, policy_state()}
+
   @callback next_assignment(
-              queue_state :: map(),
+              policy_state(),
               labeler_id :: String.t(),
-              available_samples :: [map()]
-            ) :: {:ok, map()} | {:error, atom()}
+              available_samples :: [sample()]
+            ) :: {:ok, sample()} | {:error, atom()}
+
+  @callback update_state(policy_state(), sample()) :: policy_state()
+
+  @doc """
+  Initializes policy state based on the policy type.
+
+  Dispatches to the appropriate policy module.
+  """
+  @spec init_policy(atom() | module(), map()) :: {:ok, map()}
+  def init_policy(:round_robin, config) do
+    Anvil.Queue.Policy.RoundRobin.init(config)
+  end
+
+  def init_policy(:random, config) do
+    Anvil.Queue.Policy.Random.init(config)
+  end
+
+  def init_policy(:expertise, config) do
+    Anvil.Queue.Policy.WeightedExpertise.init(config)
+  end
+
+  def init_policy(:redundancy, config) do
+    Anvil.Queue.Policy.Redundancy.init(config)
+  end
+
+  def init_policy(module, config) when is_atom(module) do
+    module.init(config)
+  end
 
   @doc """
   Returns the next sample for a labeler based on the policy.
+
+  Dispatches to the appropriate policy module.
   """
   @spec next_sample(atom() | module(), map(), String.t(), [map()]) ::
           {:ok, map()} | {:error, atom()}
-  def next_sample(:round_robin, state, _labeler_id, available_samples) do
-    round_robin_next(state, available_samples)
+  def next_sample(:round_robin, state, labeler_id, available_samples) do
+    Anvil.Queue.Policy.RoundRobin.next_assignment(state, labeler_id, available_samples)
   end
 
-  def next_sample(:random, _state, _labeler_id, available_samples) do
-    random_next(available_samples)
+  def next_sample(:random, state, labeler_id, available_samples) do
+    Anvil.Queue.Policy.Random.next_assignment(state, labeler_id, available_samples)
   end
 
   def next_sample(:expertise, state, labeler_id, available_samples) do
-    expertise_next(state, labeler_id, available_samples)
+    Anvil.Queue.Policy.WeightedExpertise.next_assignment(state, labeler_id, available_samples)
   end
 
-  def next_sample({module, _config}, state, labeler_id, available_samples) do
+  def next_sample(:redundancy, state, labeler_id, available_samples) do
+    Anvil.Queue.Policy.Redundancy.next_assignment(state, labeler_id, available_samples)
+  end
+
+  def next_sample({module, _config}, state, labeler_id, available_samples)
+      when is_atom(module) do
     module.next_assignment(state, labeler_id, available_samples)
   end
 
-  # Round-robin implementation
-  defp round_robin_next(_state, []), do: {:error, :no_samples_available}
-
-  defp round_robin_next(_state, available_samples) do
-    # Just return the first available sample
-    # The queue manages what's "available" for each labeler
-    {:ok, hd(available_samples)}
-  end
-
-  # Random implementation
-  defp random_next([]), do: {:error, :no_samples_available}
-
-  defp random_next(available_samples) do
-    sample = Enum.random(available_samples)
-    {:ok, sample}
-  end
-
-  # Expertise-based implementation
-  defp expertise_next(_state, _labeler_id, []), do: {:error, :no_samples_available}
-
-  defp expertise_next(state, labeler_id, available_samples) do
-    config = Map.get(state, :policy_config, %{})
-    expertise_scores = Map.get(config, :expertise_scores, %{})
-    min_expertise = Map.get(config, :min_expertise, 0.0)
-    sample_difficulty = Map.get(config, :sample_difficulty, %{})
-
-    labeler_expertise = Map.get(expertise_scores, labeler_id, 0.5)
-
-    if labeler_expertise < min_expertise do
-      {:error, :insufficient_expertise}
-    else
-      # Select sample with appropriate difficulty
-      sample =
-        available_samples
-        |> Enum.map(fn s ->
-          difficulty = Map.get(sample_difficulty, s.id, 0.5)
-          score = labeler_expertise - difficulty
-          {s, score}
-        end)
-        |> Enum.max_by(fn {_s, score} -> score end)
-        |> elem(0)
-
-      {:ok, sample}
-    end
+  def next_sample(module, state, labeler_id, available_samples) when is_atom(module) do
+    module.next_assignment(state, labeler_id, available_samples)
   end
 
   @doc """
   Updates the policy state after an assignment.
   """
   @spec update_state(atom() | module(), map(), map()) :: map()
-  def update_state(:round_robin, state, _sample) do
-    Map.update(state, :round_robin_index, 0, &(&1 + 1))
+  def update_state(:round_robin, state, sample) do
+    Anvil.Queue.Policy.RoundRobin.update_state(state, sample)
+  end
+
+  def update_state(:random, state, sample) do
+    Anvil.Queue.Policy.Random.update_state(state, sample)
+  end
+
+  def update_state(:expertise, state, sample) do
+    Anvil.Queue.Policy.WeightedExpertise.update_state(state, sample)
+  end
+
+  def update_state(:redundancy, state, sample) do
+    Anvil.Queue.Policy.Redundancy.update_state(state, sample)
+  end
+
+  def update_state({module, _config}, state, sample) when is_atom(module) do
+    module.update_state(state, sample)
+  end
+
+  def update_state(module, state, sample) when is_atom(module) do
+    module.update_state(state, sample)
   end
 
   def update_state(_policy, state, _sample), do: state

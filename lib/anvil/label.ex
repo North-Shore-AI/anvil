@@ -48,6 +48,6 @@ defmodule Anvil.Label do
   end
 
   defp generate_id do
-    ("label_" <> :crypto.strong_rand_bytes(16)) |> Base.encode16(case: :lower)
+    Ecto.UUID.generate()
   end
 end

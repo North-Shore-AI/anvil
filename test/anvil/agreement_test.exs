@@ -181,4 +181,207 @@ defmodule Anvil.AgreementTest do
     # Just ensure it completes without error
     assert {:ok, _kappa} = Agreement.Fleiss.compute(labels)
   end
+
+  describe "compute_for_field/3" do
+    test "computes agreement for single dimension with perfect agreement" do
+      labels = [
+        %{sample_id: "s1", labeler_id: "l1", values: %{"coherence" => 4, "grounded" => 3}},
+        %{sample_id: "s1", labeler_id: "l2", values: %{"coherence" => 4, "grounded" => 5}}
+      ]
+
+      {:ok, coherence_kappa} = Agreement.compute_for_field(labels, "coherence")
+      # Both labelers gave coherence=4, so perfect agreement
+      assert coherence_kappa == 1.0
+    end
+
+    test "handles labels with missing field values" do
+      labels = [
+        %{sample_id: "s1", labeler_id: "l1", values: %{"coherence" => 4, "grounded" => 3}},
+        %{sample_id: "s1", labeler_id: "l2", values: %{"coherence" => 5}},
+        # l3 has no coherence value
+        %{sample_id: "s1", labeler_id: "l3", values: %{"grounded" => 3}}
+      ]
+
+      # Should compute agreement on coherence using only l1 and l2
+      {:ok, _kappa} = Agreement.compute_for_field(labels, "coherence")
+    end
+
+    test "returns error when insufficient labels for a field" do
+      labels = [
+        %{sample_id: "s1", labeler_id: "l1", values: %{"coherence" => 4}}
+        # Only one labeler has coherence value
+      ]
+
+      assert {:error, :insufficient_labels} = Agreement.compute_for_field(labels, "coherence")
+    end
+
+    test "returns error when all values are nil" do
+      labels = [
+        %{sample_id: "s1", labeler_id: "l1", values: %{"grounded" => 3}},
+        %{sample_id: "s1", labeler_id: "l2", values: %{"grounded" => 5}}
+      ]
+
+      assert {:error, :insufficient_labels} = Agreement.compute_for_field(labels, "coherence")
+    end
+  end
+
+  describe "compute_all_dimensions/3" do
+    test "computes agreement for all fields in schema" do
+      labels = [
+        %{
+          sample_id: "s1",
+          labeler_id: "l1",
+          values: %{"coherence" => 4, "grounded" => 3, "balance" => 2}
+        },
+        %{
+          sample_id: "s1",
+          labeler_id: "l2",
+          values: %{"coherence" => 4, "grounded" => 3, "balance" => 4}
+        }
+      ]
+
+      schema = %{fields: ["coherence", "grounded", "balance"]}
+
+      result = Agreement.compute_all_dimensions(labels, schema)
+
+      assert is_map(result)
+      assert Map.has_key?(result, :coherence)
+      assert Map.has_key?(result, :grounded)
+      assert Map.has_key?(result, :balance)
+    end
+
+    test "handles empty fields list" do
+      labels = [
+        %{sample_id: "s1", labeler_id: "l1", values: %{"coherence" => 4}},
+        %{sample_id: "s1", labeler_id: "l2", values: %{"coherence" => 5}}
+      ]
+
+      schema = %{fields: []}
+
+      result = Agreement.compute_all_dimensions(labels, schema)
+      assert result == %{}
+    end
+  end
+
+  describe "summary/3" do
+    test "returns comprehensive agreement summary" do
+      labels = [
+        %{
+          sample_id: "s1",
+          labeler_id: "l1",
+          assignment_id: "a1",
+          values: %{"coherence" => 4, "grounded" => 3}
+        },
+        %{
+          sample_id: "s1",
+          labeler_id: "l2",
+          assignment_id: "a1",
+          values: %{"coherence" => 4, "grounded" => 5}
+        },
+        %{
+          sample_id: "s2",
+          labeler_id: "l3",
+          assignment_id: "a2",
+          values: %{"coherence" => 3, "grounded" => 3}
+        }
+      ]
+
+      schema = %{fields: ["coherence", "grounded"]}
+
+      result = Agreement.summary(labels, schema)
+
+      assert Map.has_key?(result, :overall)
+      assert Map.has_key?(result, :by_dimension)
+      assert result.sample_count == 2
+      assert result.labeler_count == 3
+      assert is_map(result.by_dimension)
+    end
+  end
+
+  describe "Accumulator" do
+    alias Anvil.Agreement.Accumulator
+
+    test "new/0 creates empty accumulator" do
+      acc = Accumulator.new()
+
+      assert acc.confusion_matrix == %{}
+      assert acc.label_counts == %{}
+      assert acc.labeler_counts == %{}
+      assert acc.last_updated == nil
+    end
+
+    test "add_label/2 updates labeler counts" do
+      acc = Accumulator.new()
+      label = %{labeler_id: "l1", values: %{"coherence" => 4}}
+
+      acc = Accumulator.add_label(acc, label)
+
+      assert acc.labeler_counts["l1"] == 1
+      assert %DateTime{} = acc.last_updated
+    end
+
+    test "add_label/2 updates label counts for each field" do
+      acc = Accumulator.new()
+      label = %{labeler_id: "l1", values: %{"coherence" => 4, "grounded" => 3}}
+
+      acc = Accumulator.add_label(acc, label)
+
+      assert acc.label_counts[{"coherence", 4}] == 1
+      assert acc.label_counts[{"grounded", 3}] == 1
+    end
+
+    test "add_label/2 accumulates multiple labels from same labeler" do
+      acc = Accumulator.new()
+
+      acc =
+        acc
+        |> Accumulator.add_label(%{labeler_id: "l1", values: %{"field" => "a"}})
+        |> Accumulator.add_label(%{labeler_id: "l1", values: %{"field" => "b"}})
+
+      assert acc.labeler_counts["l1"] == 2
+    end
+
+    test "compute_kappa/1 returns error for insufficient labelers" do
+      acc = Accumulator.new()
+      acc = Accumulator.add_label(acc, %{labeler_id: "l1", values: %{"field" => "a"}})
+
+      assert {:error, :insufficient_labelers} = Accumulator.compute_kappa(acc)
+    end
+
+    test "compute_kappa/1 returns error for no labels" do
+      acc = Accumulator.new()
+
+      assert {:error, :no_labels} = Accumulator.compute_kappa(acc)
+    end
+
+    test "merge/2 combines two accumulators" do
+      acc1 =
+        Accumulator.new()
+        |> Accumulator.add_label(%{labeler_id: "l1", values: %{"field" => "a"}})
+
+      acc2 =
+        Accumulator.new()
+        |> Accumulator.add_label(%{labeler_id: "l2", values: %{"field" => "a"}})
+
+      merged = Accumulator.merge(acc1, acc2)
+
+      assert merged.labeler_counts["l1"] == 1
+      assert merged.labeler_counts["l2"] == 1
+      assert merged.label_counts[{"field", "a"}] == 2
+    end
+
+    test "merge/2 sums counts for overlapping keys" do
+      acc1 =
+        Accumulator.new()
+        |> Accumulator.add_label(%{labeler_id: "l1", values: %{"field" => "a"}})
+
+      acc2 =
+        Accumulator.new()
+        |> Accumulator.add_label(%{labeler_id: "l1", values: %{"field" => "b"}})
+
+      merged = Accumulator.merge(acc1, acc2)
+
+      assert merged.labeler_counts["l1"] == 2
+    end
+  end
 end

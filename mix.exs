@@ -30,6 +30,8 @@ defmodule Anvil.MixProject do
   defp deps do
     [
       {:jason, "~> 1.4"},
+      {:ecto_sql, "~> 3.10"},
+      {:postgrex, "~> 0.17"},
       {:ex_doc, "~> 0.31", only: :dev, runtime: false},
       {:supertester, "~> 0.3.1", only: :test}
     ]

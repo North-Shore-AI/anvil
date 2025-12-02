@@ -28,6 +28,115 @@ defmodule Anvil.Agreement do
     end
   end
 
+  @doc """
+  Computes agreement for a specific dimension/field.
+
+  ## Examples
+
+      iex> labels = [
+      ...>   %{labeler_id: "l1", values: %{"coherence" => 4, "grounded" => 3}},
+      ...>   %{labeler_id: "l2", values: %{"coherence" => 4, "grounded" => 5}}
+      ...> ]
+      iex> Agreement.compute_for_field(labels, "coherence")
+      {:ok, 1.0}  # Perfect agreement on coherence
+
+  """
+  @spec compute_for_field([map()], String.t(), keyword()) :: {:ok, float()} | {:error, term()}
+  def compute_for_field(labels, field_name, opts \\ []) do
+    # Extract field values from each label, preserving sample_id
+    field_labels =
+      labels
+      |> Enum.map(fn label ->
+        value = get_in(label, [Access.key(:values, %{}), field_name])
+
+        %{
+          sample_id: label[:sample_id],
+          labeler_id: label[:labeler_id],
+          values: %{field_name => value}
+        }
+      end)
+      |> Enum.reject(fn label -> is_nil(get_in(label, [:values, field_name])) end)
+
+    if length(field_labels) < 2 do
+      {:error, :insufficient_labels}
+    else
+      compute(field_labels, Keyword.put(opts, :field, field_name))
+    end
+  end
+
+  @doc """
+  Computes agreement for all dimensions in the schema.
+
+  Returns a map with per-dimension agreement scores.
+
+  ## Examples
+
+      iex> labels = [...]
+      iex> schema = %{fields: ["coherence", "grounded", "balance"]}
+      iex> Agreement.compute_all_dimensions(labels, schema)
+      %{
+        coherence: {:ok, 0.72},
+        grounded: {:ok, 0.85},
+        balance: {:ok, 0.45}
+      }
+
+  """
+  @spec compute_all_dimensions([map()], map(), keyword()) :: map()
+  def compute_all_dimensions(labels, schema, opts \\ []) do
+    fields = Map.get(schema, :fields, [])
+
+    for field <- fields, into: %{} do
+      {String.to_atom(field), compute_for_field(labels, field, opts)}
+    end
+  end
+
+  @doc """
+  Returns a comprehensive agreement summary with per-dimension breakdown.
+
+  ## Examples
+
+      iex> labels = [...]
+      iex> schema = %{fields: ["coherence", "grounded"]}
+      iex> Agreement.summary(labels, schema)
+      %{
+        overall: {:ok, 0.78},
+        by_dimension: %{
+          coherence: {:ok, 0.72},
+          grounded: {:ok, 0.85}
+        },
+        sample_count: 50,
+        labeler_count: 3
+      }
+
+  """
+  @spec summary([map()], map(), keyword()) :: map()
+  def summary(labels, schema, opts \\ []) do
+    %{
+      overall: compute(labels, opts),
+      by_dimension: compute_all_dimensions(labels, schema, opts),
+      sample_count: labels |> Enum.map(& &1[:assignment_id]) |> Enum.uniq() |> length(),
+      labeler_count: labels |> Enum.map(& &1[:labeler_id]) |> Enum.uniq() |> length()
+    }
+  end
+
+  @doc """
+  Batch recomputes agreement for all samples in a queue.
+
+  This is useful for full recalculation after schema migrations or data changes.
+
+  ## Options
+
+    * `:batch_size` - Number of samples to process per batch (default: 100)
+    * `:metric` - Force a specific metric for all computations
+
+  """
+  @spec recompute_all(binary(), keyword()) :: {:ok, map()} | {:error, term()}
+  def recompute_all(queue_id, _opts \\ []) do
+    # This would need to fetch labels from storage and recompute
+    # For now, return a placeholder
+    {:ok, %{queue_id: queue_id, status: :not_implemented}}
+  end
+
   defp auto_select(labels, opts) do
     labelers = labels |> Enum.map(& &1.labeler_id) |> Enum.uniq()
 

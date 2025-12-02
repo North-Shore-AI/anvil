@@ -8,6 +8,8 @@ defmodule Anvil.Application do
   @impl true
   def start(_type, _args) do
     children = [
+      # Ecto Repo for Postgres storage
+      Anvil.Repo,
       # Registry for queue processes
       {Registry, keys: :unique, name: Anvil.Registry}
     ]
