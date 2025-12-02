@@ -1,25 +1,25 @@
 defmodule Anvil.MixProject do
   use Mix.Project
 
+  @version "0.1.0"
+  @source_url "https://github.com/North-Shore-AI/anvil"
+
   def project do
     [
       app: :anvil,
-      version: "0.1.0",
-      elixir: "~> 1.18",
+      version: @version,
+      elixir: "~> 1.15",
       start_permanent: Mix.env() == :prod,
       deps: deps(),
       description: description(),
       package: package(),
-      source_url: "https://github.com/North-Shore-AI/anvil",
-      homepage_url: "https://github.com/North-Shore-AI/anvil",
-      docs: [
-        main: "Anvil",
-        extras: ["README.md"]
-      ]
+      name: "Anvil",
+      source_url: @source_url,
+      homepage_url: @source_url,
+      docs: docs()
     ]
   end
 
-  # Run "mix help compile.app" to learn about applications.
   def application do
     [
       extra_applications: [:logger],
@@ -27,24 +27,72 @@ defmodule Anvil.MixProject do
     ]
   end
 
-  # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
       {:jason, "~> 1.4"},
-      {:supertester, "~> 0.3.1", only: :test},
-      {:ex_doc, "~> 0.31", only: :dev, runtime: false}
+      {:ex_doc, "~> 0.31", only: :dev, runtime: false},
+      {:supertester, "~> 0.3.1", only: :test}
     ]
   end
 
   defp description do
-    "Labeling queue library for managing human labeling workflows"
+    """
+    Labeling queue library for managing human labeling workflows.
+    Domain-agnostic HITL (human-in-the-loop) data annotation with
+    inter-rater reliability metrics (Cohen's kappa, Fleiss' kappa,
+    Krippendorff's alpha) and export to standard formats.
+    """
   end
 
   defp package do
     [
-      name: "anvil",
+      name: "anvil_ex",
       licenses: ["MIT"],
-      links: %{"GitHub" => "https://github.com/North-Shore-AI/anvil"}
+      links: %{
+        "GitHub" => @source_url,
+        "Changelog" => "#{@source_url}/blob/main/CHANGELOG.md"
+      },
+      maintainers: ["North-Shore-AI"],
+      files: ~w(lib .formatter.exs mix.exs README.md LICENSE CHANGELOG.md)
+    ]
+  end
+
+  defp docs do
+    [
+      main: "Anvil",
+      extras: ["README.md", "CHANGELOG.md"],
+      source_ref: "v#{@version}",
+      source_url: @source_url,
+      groups_for_modules: [
+        Core: [
+          Anvil,
+          Anvil.Schema,
+          Anvil.Queue,
+          Anvil.Assignment,
+          Anvil.Label
+        ],
+        "Schema Fields": [
+          Anvil.Schema.Field
+        ],
+        "Queue Policies": [
+          Anvil.Queue.Policy
+        ],
+        Agreement: [
+          Anvil.Agreement,
+          Anvil.Agreement.Cohen,
+          Anvil.Agreement.Fleiss,
+          Anvil.Agreement.Krippendorff
+        ],
+        Export: [
+          Anvil.Export,
+          Anvil.Export.CSV,
+          Anvil.Export.JSONL
+        ],
+        Storage: [
+          Anvil.Storage,
+          Anvil.Storage.ETS
+        ]
+      ]
     ]
   end
 end

@@ -1,5 +1,7 @@
 # Anvil
 
+![Anvil Logo](assets/anvil.svg)
+
 [![Hex.pm](https://img.shields.io/hexpm/v/anvil.svg)](https://hex.pm/packages/anvil)
 [![Documentation](https://img.shields.io/badge/docs-hexpm-blue.svg)](https://hexdocs.pm/anvil)
 
