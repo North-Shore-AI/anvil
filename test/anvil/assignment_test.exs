@@ -90,11 +90,21 @@ defmodule Anvil.AssignmentTest do
       assert skipped.skip_reason == nil
     end
 
-    test "returns error if not in_progress" do
+    test "can skip from pending state" do
       assignment = Assignment.new(sample_id: "s1", labeler_id: "l1", queue_id: "q1")
 
-      assert {:error, {:invalid_transition, :pending, :skipped}} =
-               Assignment.skip(assignment)
+      assert {:ok, skipped} = Assignment.skip(assignment, "not interested")
+      assert skipped.status == :skipped
+      assert skipped.skip_reason == "not interested"
+    end
+
+    test "returns error if already completed" do
+      assignment = Assignment.new(sample_id: "s1", labeler_id: "l1", queue_id: "q1")
+      {:ok, assignment} = Assignment.start(assignment, 3600)
+      {:ok, completed} = Assignment.complete(assignment, "label123")
+
+      assert {:error, {:invalid_transition, :completed, :skipped}} =
+               Assignment.skip(completed)
     end
   end
 

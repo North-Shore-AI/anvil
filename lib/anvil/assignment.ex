@@ -107,6 +107,16 @@ defmodule Anvil.Assignment do
   @spec skip(t(), String.t() | nil) :: {:ok, t()} | {:error, term()}
   def skip(assignment, reason \\ nil)
 
+  def skip(%__MODULE__{status: :pending} = assignment, reason) do
+    {:ok,
+     %{
+       assignment
+       | status: :skipped,
+         skipped_at: DateTime.utc_now(),
+         skip_reason: reason
+     }}
+  end
+
   def skip(%__MODULE__{status: :in_progress} = assignment, reason) do
     {:ok,
      %{
@@ -156,6 +166,6 @@ defmodule Anvil.Assignment do
   end
 
   defp generate_id do
-    ("assign_" <> :crypto.strong_rand_bytes(16)) |> Base.encode16(case: :lower)
+    Ecto.UUID.generate()
   end
 end
