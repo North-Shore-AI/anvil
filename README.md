@@ -1,10 +1,6 @@
-<div align="center">
-
 # Anvil
 
-<img src="assets/anvil.svg" alt="Anvil Logo" width="392"/>
-
-</div>
+<p align="center"><img src="assets/anvil.svg" alt="Anvil Logo" width="392" /></p>
 
 [![Hex.pm](https://img.shields.io/hexpm/v/anvil_ex.svg)](https://hex.pm/packages/anvil_ex)
 [![Documentation](https://img.shields.io/badge/docs-hexpm-blue.svg)](https://hexdocs.pm/anvil_ex)
