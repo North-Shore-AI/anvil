@@ -8,6 +8,19 @@ defmodule Anvil.Schema.Queue do
   use Ecto.Schema
   import Ecto.Changeset
 
+  @type t :: %__MODULE__{
+          id: Ecto.UUID.t() | nil,
+          tenant_id: Ecto.UUID.t() | nil,
+          name: String.t() | nil,
+          policy: map() | nil,
+          status: :active | :paused | :archived,
+          schema_version_id: Ecto.UUID.t() | nil,
+          schema_version: Anvil.Schema.SchemaVersion.t() | Ecto.Association.NotLoaded.t() | nil,
+          assignments: [Anvil.Schema.Assignment.t()] | Ecto.Association.NotLoaded.t(),
+          inserted_at: DateTime.t() | nil,
+          updated_at: DateTime.t() | nil
+        }
+
   @primary_key {:id, :binary_id, autogenerate: true}
   @foreign_key_type :binary_id
 

@@ -9,6 +9,7 @@ defmodule Anvil.Storage.Postgres do
   @behaviour Anvil.Storage
 
   alias Anvil.Schema.{Assignment, Label, SampleRef}
+  alias Anvil.Telemetry
   import Ecto.Query
 
   @impl true
@@ -19,17 +20,19 @@ defmodule Anvil.Storage.Postgres do
 
   @impl true
   def put_sample(state, sample) do
-    attrs = %{
-      sample_id: sample.id || sample[:id],
-      metadata: Map.get(sample, :metadata, %{})
-    }
+    Telemetry.span_storage_query("put_sample", %{}, fn ->
+      attrs = %{
+        sample_id: sample.id || sample[:id],
+        metadata: Map.get(sample, :metadata, %{})
+      }
 
-    changeset = SampleRef.changeset(%SampleRef{}, attrs)
+      changeset = SampleRef.changeset(%SampleRef{}, attrs)
 
-    case state.repo.insert(changeset, on_conflict: :nothing) do
-      {:ok, _sample_ref} -> {:ok, state}
-      {:error, changeset} -> {:error, {:invalid_sample, changeset}}
-    end
+      case state.repo.insert(changeset, on_conflict: :nothing) do
+        {:ok, _sample_ref} -> {{:ok, state}, %{}}
+        {:error, changeset} -> {{:error, {:invalid_sample, changeset}}, %{error: :invalid_sample}}
+      end
+    end)
   end
 
   @impl true
@@ -42,22 +45,24 @@ defmodule Anvil.Storage.Postgres do
 
   @impl true
   def list_samples(state, filters) do
-    query = from(s in SampleRef)
+    Telemetry.span_storage_query("list_samples", %{filter_count: length(filters)}, fn ->
+      query = from(s in SampleRef)
 
-    query =
-      Enum.reduce(filters, query, fn
-        {:sample_ids, ids}, q ->
-          where(q, [s], s.sample_id in ^ids)
+      query =
+        Enum.reduce(filters, query, fn
+          {:sample_ids, ids}, q ->
+            where(q, [s], s.sample_id in ^ids)
 
-        _, q ->
-          q
-      end)
+          _, q ->
+            q
+        end)
 
-    samples =
-      state.repo.all(query)
-      |> Enum.map(&to_sample_map/1)
+      samples =
+        state.repo.all(query)
+        |> Enum.map(&to_sample_map/1)
 
-    {:ok, samples, state}
+      {{:ok, samples, state}, %{row_count: length(samples)}}
+    end)
   end
 
   @impl true
@@ -98,31 +103,33 @@ defmodule Anvil.Storage.Postgres do
 
   @impl true
   def list_assignments(state, filters) do
-    query = from(a in Assignment)
+    Telemetry.span_storage_query("list_assignments", %{filter_count: length(filters)}, fn ->
+      query = from(a in Assignment)
 
-    query =
-      Enum.reduce(filters, query, fn
-        {:queue_id, queue_id}, q ->
-          where(q, [a], a.queue_id == ^queue_id)
+      query =
+        Enum.reduce(filters, query, fn
+          {:queue_id, queue_id}, q ->
+            where(q, [a], a.queue_id == ^queue_id)
 
-        {:labeler_id, labeler_id}, q ->
-          where(q, [a], a.labeler_id == ^labeler_id)
+          {:labeler_id, labeler_id}, q ->
+            where(q, [a], a.labeler_id == ^labeler_id)
 
-        {:status, status}, q ->
-          where(q, [a], a.status == ^status)
+          {:status, status}, q ->
+            where(q, [a], a.status == ^status)
 
-        {:sample_id, sample_id}, q ->
-          where(q, [a], a.sample_id == ^sample_id)
+          {:sample_id, sample_id}, q ->
+            where(q, [a], a.sample_id == ^sample_id)
 
-        _, q ->
-          q
-      end)
+          _, q ->
+            q
+        end)
 
-    assignments =
-      state.repo.all(query)
-      |> Enum.map(&to_assignment_struct/1)
+      assignments =
+        state.repo.all(query)
+        |> Enum.map(&to_assignment_struct/1)
 
-    {:ok, assignments, state}
+      {{:ok, assignments, state}, %{row_count: length(assignments)}}
+    end)
   end
 
   @impl true
@@ -154,29 +161,31 @@ defmodule Anvil.Storage.Postgres do
 
   @impl true
   def list_labels(state, filters) do
-    query = from(l in Label)
+    Telemetry.span_storage_query("list_labels", %{filter_count: length(filters)}, fn ->
+      query = from(l in Label)
 
-    query =
-      Enum.reduce(filters, query, fn
-        {:assignment_id, assignment_id}, q ->
-          where(q, [l], l.assignment_id == ^assignment_id)
+      query =
+        Enum.reduce(filters, query, fn
+          {:assignment_id, assignment_id}, q ->
+            where(q, [l], l.assignment_id == ^assignment_id)
 
-        {:labeler_id, labeler_id}, q ->
-          where(q, [l], l.labeler_id == ^labeler_id)
+          {:labeler_id, labeler_id}, q ->
+            where(q, [l], l.labeler_id == ^labeler_id)
 
-        {:sample_id, sample_id}, q ->
-          join(q, :inner, [l], a in Assignment, on: l.assignment_id == a.id)
-          |> where([l, a], a.sample_id == ^sample_id)
+          {:sample_id, sample_id}, q ->
+            join(q, :inner, [l], a in Assignment, on: l.assignment_id == a.id)
+            |> where([l, a], a.sample_id == ^sample_id)
 
-        _, q ->
-          q
-      end)
+          _, q ->
+            q
+        end)
 
-    labels =
-      state.repo.all(query)
-      |> Enum.map(&to_label_struct/1)
+      labels =
+        state.repo.all(query)
+        |> Enum.map(&to_label_struct/1)
 
-    {:ok, labels, state}
+      {{:ok, labels, state}, %{row_count: length(labels)}}
+    end)
   end
 
   # Helper functions

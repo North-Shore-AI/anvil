@@ -6,6 +6,7 @@ defmodule Anvil.Agreement do
   """
 
   alias Anvil.Agreement.{Cohen, Fleiss, Krippendorff}
+  alias Anvil.Telemetry
 
   @doc """
   Computes agreement metric, automatically selecting the appropriate algorithm.
@@ -18,14 +19,41 @@ defmodule Anvil.Agreement do
   """
   @spec compute([Anvil.Label.t()], keyword()) :: {:ok, float()} | {:error, term()}
   def compute(labels, opts \\ []) do
+    field = Keyword.get(opts, :field)
     metric = Keyword.get(opts, :metric)
 
-    cond do
-      metric == :cohen -> Cohen.compute(labels, opts)
-      metric == :fleiss -> Fleiss.compute(labels, opts)
-      metric == :krippendorff -> Krippendorff.compute(labels, opts)
-      true -> auto_select(labels, opts)
-    end
+    # Wrap computation in telemetry span
+    Telemetry.span_agreement_compute(
+      %{
+        metric: metric || :auto,
+        dimension: field,
+        n_raters: labels |> Enum.map(& &1.labeler_id) |> Enum.uniq() |> length()
+      },
+      fn ->
+        computed_result =
+          cond do
+            metric == :cohen -> Cohen.compute(labels, opts)
+            metric == :fleiss -> Fleiss.compute(labels, opts)
+            metric == :krippendorff -> Krippendorff.compute(labels, opts)
+            true -> auto_select(labels, opts)
+          end
+
+        # Check for low agreement score
+        case computed_result do
+          {:ok, score} when score < 0.6 ->
+            Telemetry.emit_low_agreement_score(score, %{
+              dimension: field,
+              threshold: 0.6,
+              metric: metric || :auto
+            })
+
+          _ ->
+            :ok
+        end
+
+        {computed_result, %{}}
+      end
+    )
   end
 
   @doc """
@@ -132,9 +160,16 @@ defmodule Anvil.Agreement do
   """
   @spec recompute_all(binary(), keyword()) :: {:ok, map()} | {:error, term()}
   def recompute_all(queue_id, _opts \\ []) do
-    # This would need to fetch labels from storage and recompute
-    # For now, return a placeholder
-    {:ok, %{queue_id: queue_id, status: :not_implemented}}
+    # Wrap batch recomputation in telemetry span
+    Telemetry.span_agreement_batch_recompute(
+      %{queue_id: queue_id},
+      fn ->
+        # This would need to fetch labels from storage and recompute
+        # For now, return a placeholder
+        computed_result = {:ok, %{queue_id: queue_id, status: :not_implemented}}
+        {computed_result, %{samples_processed: 0}}
+      end
+    )
   end
 
   defp auto_select(labels, opts) do

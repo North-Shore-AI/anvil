@@ -33,6 +33,12 @@ defmodule Anvil.MixProject do
       {:jason, "~> 1.4"},
       {:ecto_sql, "~> 3.10"},
       {:postgrex, "~> 0.17"},
+      {:oban, "~> 2.17"},
+      {:telemetry, "~> 1.2"},
+      {:telemetry_metrics, "~> 1.0"},
+      {:cachex, "~> 3.6"},
+      {:fuse, "~> 2.5"},
+      {:httpoison, "~> 2.2"},
       {:ex_doc, "~> 0.31", only: :dev, runtime: false},
       {:dialyxir, "~> 1.4", only: [:dev, :test], runtime: false},
       {:supertester, "~> 0.3.1", only: :test}
@@ -95,6 +101,14 @@ defmodule Anvil.MixProject do
         Storage: [
           Anvil.Storage,
           Anvil.Storage.ETS
+        ],
+        "Forge Integration": [
+          Anvil.ForgeBridge,
+          Anvil.ForgeBridge.SampleDTO,
+          Anvil.ForgeBridge.Direct,
+          Anvil.ForgeBridge.HTTP,
+          Anvil.ForgeBridge.Cached,
+          Anvil.ForgeBridge.Mock
         ]
       ]
     ]

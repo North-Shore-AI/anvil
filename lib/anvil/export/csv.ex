@@ -11,7 +11,9 @@ defmodule Anvil.Export.CSV do
 
   alias Anvil.Export.Manifest
   alias Anvil.Repo
-  alias Anvil.Schema.{Label, Assignment}
+  alias Anvil.Schema.{Label, Assignment, SchemaVersion, Labeler}
+  alias Anvil.Telemetry
+  alias Anvil.PII.Redactor
   import Ecto.Query
 
   @doc """
@@ -25,6 +27,8 @@ defmodule Anvil.Export.CSV do
     * `:limit` - (optional) Maximum number of rows to export
     * `:offset` - (optional) Number of rows to skip before exporting
     * `:filter` - (optional) Additional filter criteria
+    * `:redaction_mode` - (optional) Redaction mode (`:none`, `:automatic`, `:aggressive`) (default: `:automatic`)
+    * `:use_pseudonyms` - (optional) Use labeler pseudonyms instead of IDs (default: `true`)
 
   ## Returns
 
@@ -41,54 +45,81 @@ defmodule Anvil.Export.CSV do
   """
   @spec to_format(binary(), map()) :: {:ok, map()} | {:error, term()}
   def to_format(queue_id, opts) when is_map(opts) do
-    with {:ok, schema_version_id} <- validate_required_opt(opts, :schema_version_id),
-         {:ok, output_path} <- validate_required_opt(opts, :output_path),
-         :ok <- ensure_directory_exists(output_path) do
-      # Write export to temporary file first (atomic operation)
-      tmp_path = output_path <> ".tmp"
+    export_id = Ecto.UUID.generate()
 
-      try do
-        # Stream labels and write to file
-        row_count = write_csv_file(tmp_path, queue_id, schema_version_id, opts)
+    # Wrap export in telemetry span
+    Telemetry.span_export_generate(
+      %{queue_id: queue_id, format: :csv, export_id: export_id},
+      fn ->
+        with {:ok, schema_version_id} <- validate_required_opt(opts, :schema_version_id),
+             {:ok, output_path} <- validate_required_opt(opts, :output_path),
+             :ok <- ensure_directory_exists(output_path) do
+          # Write export to temporary file first (atomic operation)
+          tmp_path = output_path <> ".tmp"
 
-        # Rename tmp file to final destination
-        :ok = File.rename!(tmp_path, output_path)
+          try do
+            # Stream labels and write to file
+            row_count = write_csv_file(tmp_path, queue_id, schema_version_id, opts, export_id)
 
-        case Manifest.compute_file_hash(output_path) do
-          {:ok, sha256_hash} ->
-            manifest =
-              Manifest.new(%{
-                queue_id: queue_id,
-                schema_version_id: schema_version_id,
-                sample_version: Map.get(opts, :sample_version),
-                format: :csv,
-                output_path: output_path,
-                row_count: row_count,
-                sha256_hash: sha256_hash,
-                exported_at: DateTime.utc_now(),
-                parameters: %{
-                  limit: Map.get(opts, :limit),
-                  offset: Map.get(opts, :offset),
-                  filter: Map.get(opts, :filter)
-                }
-              })
+            # Rename tmp file to final destination
+            :ok = File.rename!(tmp_path, output_path)
 
-            # Save manifest
-            :ok = Manifest.save(manifest)
+            case Manifest.compute_file_hash(output_path) do
+              {:ok, sha256_hash} ->
+                manifest =
+                  Manifest.new(%{
+                    queue_id: queue_id,
+                    schema_version_id: schema_version_id,
+                    sample_version: Map.get(opts, :sample_version),
+                    format: :csv,
+                    output_path: output_path,
+                    row_count: row_count,
+                    sha256_hash: sha256_hash,
+                    exported_at: DateTime.utc_now(),
+                    parameters: %{
+                      limit: Map.get(opts, :limit),
+                      offset: Map.get(opts, :offset),
+                      filter: Map.get(opts, :filter)
+                    }
+                  })
 
-            {:ok, %{manifest: manifest, output_path: output_path}}
+                # Save manifest
+                :ok = Manifest.save(manifest)
 
+                # Emit export completed event
+                Telemetry.emit_export_completed(export_id, %{
+                  queue_id: queue_id,
+                  format: :csv,
+                  row_count: row_count,
+                  file_size_bytes: File.stat!(output_path).size
+                })
+
+                {{:ok, %{manifest: manifest, output_path: output_path}}, %{row_count: row_count}}
+
+              {:error, reason} ->
+                File.rm(output_path)
+
+                Telemetry.emit_export_failed(export_id, reason, %{
+                  queue_id: queue_id,
+                  format: :csv
+                })
+
+                {{:error, reason}, %{error: reason}}
+            end
+          rescue
+            e ->
+              # Clean up temp file on error
+              File.rm(tmp_path)
+              Telemetry.emit_export_failed(export_id, e, %{queue_id: queue_id, format: :csv})
+              {{:error, e}, %{error: e}}
+          end
+        else
           {:error, reason} ->
-            File.rm(output_path)
-            {:error, reason}
+            Telemetry.emit_export_failed(export_id, reason, %{queue_id: queue_id, format: :csv})
+            {{:error, reason}, %{error: reason}}
         end
-      rescue
-        e ->
-          # Clean up temp file on error
-          File.rm(tmp_path)
-          {:error, e}
       end
-    end
+    )
   end
 
   @doc """
@@ -128,8 +159,17 @@ defmodule Anvil.Export.CSV do
     end
   end
 
-  defp write_csv_file(path, queue_id, schema_version_id, opts) do
+  defp write_csv_file(path, queue_id, schema_version_id, opts, export_id) do
     File.open!(path, [:write, :utf8], fn file ->
+      # Load schema version for field metadata
+      schema_version = Repo.get!(SchemaVersion, schema_version_id)
+
+      field_metadata_map =
+        Anvil.PII.Retention.extract_field_metadata(schema_version.schema_definition)
+
+      redaction_mode = Map.get(opts, :redaction_mode, :automatic)
+      use_pseudonyms = Map.get(opts, :use_pseudonyms, true)
+
       # Get first label to determine fields for header
       first_label_query =
         from(l in Label,
@@ -143,7 +183,7 @@ defmodule Anvil.Export.CSV do
       first_label = Repo.one(first_label_query)
 
       # Write header
-      header = build_csv_header(first_label)
+      header = build_csv_header(first_label, field_metadata_map, redaction_mode)
       IO.write(file, header <> "\n")
 
       # Stream labels with deterministic ordering
@@ -151,12 +191,33 @@ defmodule Anvil.Export.CSV do
 
       {:ok, row_count} =
         Repo.transaction(fn ->
+          total_count_ref = :counters.new(1, [])
+
           Repo.stream(query, max_rows: 1000)
           |> Stream.chunk_every(100)
           |> Stream.map(fn batch ->
-            rows = Enum.map(batch, &encode_csv_row/1)
+            rows =
+              Enum.map(batch, fn label ->
+                encode_csv_row(label, field_metadata_map, redaction_mode, use_pseudonyms)
+              end)
+
             IO.write(file, Enum.join(rows, "\n") <> "\n")
-            length(batch)
+            batch_size = length(batch)
+
+            # Update progress counter and emit telemetry
+            :counters.add(total_count_ref, 1, batch_size)
+            current_count = :counters.get(total_count_ref, 1)
+
+            # Emit progress every 100 rows
+            if rem(current_count, 100) == 0 do
+              Telemetry.emit_export_progress(current_count, %{
+                export_id: export_id,
+                queue_id: queue_id,
+                format: :csv
+              })
+            end
+
+            batch_size
           end)
           |> Enum.sum()
         end)
@@ -193,19 +254,31 @@ defmodule Anvil.Export.CSV do
   defp maybe_apply_offset(query, nil), do: query
   defp maybe_apply_offset(query, offset), do: from(q in query, offset: ^offset)
 
-  defp build_csv_header(nil) do
+  defp build_csv_header(nil, _field_metadata_map, _redaction_mode) do
     # Default header when no labels exist
     "sample_id,labeler_id,submitted_at"
   end
 
-  defp build_csv_header(label) do
+  defp build_csv_header(label, field_metadata_map, redaction_mode) do
     base_fields = ["sample_id", "labeler_id"]
 
     # Extract field names from payload and sort them for consistency
+    # Filter out redacted fields based on redaction mode
     payload_fields =
       case label.payload do
-        nil -> []
-        payload -> Map.keys(payload) |> Enum.sort()
+        nil ->
+          []
+
+        payload ->
+          payload
+          |> Map.keys()
+          |> Enum.filter(fn field_name ->
+            field_metadata = Map.get(field_metadata_map, field_name, %{})
+
+            not (Anvil.PII.should_redact?(field_metadata, redaction_mode) &&
+                   Anvil.PII.redaction_policy(field_metadata) == :strip)
+          end)
+          |> Enum.sort()
       end
 
     metadata_fields = ["submitted_at"]
@@ -214,23 +287,32 @@ defmodule Anvil.Export.CSV do
     |> Enum.join(",")
   end
 
-  defp encode_csv_row(label) do
+  defp encode_csv_row(label, field_metadata_map, redaction_mode, use_pseudonyms) do
+    # Get labeler identifier (pseudonym or ID)
+    labeler_value =
+      if use_pseudonyms do
+        case Repo.get(Labeler, label.labeler_id) do
+          nil -> label.labeler_id
+          labeler -> labeler.pseudonym || label.labeler_id
+        end
+      else
+        label.labeler_id
+      end
+
     base_values = [
       escape_csv_value(label.sample_id),
-      escape_csv_value(label.labeler_id)
+      escape_csv_value(labeler_value)
     ]
+
+    # Apply redaction to payload
+    redacted_payload =
+      Redactor.redact_payload(label.payload || %{}, field_metadata_map, redaction_mode)
 
     # Extract payload values in sorted key order
     payload_values =
-      case label.payload do
-        nil ->
-          []
-
-        payload ->
-          payload
-          |> Enum.sort_by(fn {k, _} -> k end)
-          |> Enum.map(fn {_, v} -> escape_csv_value(v) end)
-      end
+      redacted_payload
+      |> Enum.sort_by(fn {k, _} -> k end)
+      |> Enum.map(fn {_, v} -> escape_csv_value(v) end)
 
     metadata_values = [
       escape_csv_value(DateTime.to_iso8601(label.submitted_at))

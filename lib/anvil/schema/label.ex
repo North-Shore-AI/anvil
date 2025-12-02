@@ -16,6 +16,7 @@ defmodule Anvil.Schema.Label do
     field(:payload, :map)
     field(:blob_pointer, :string)
     field(:submitted_at, :utc_datetime)
+    field(:deleted_at, :utc_datetime)
 
     belongs_to(:assignment, Anvil.Schema.Assignment)
     belongs_to(:labeler, Anvil.Schema.Labeler)
@@ -29,6 +30,7 @@ defmodule Anvil.Schema.Label do
           payload: map(),
           blob_pointer: String.t() | nil,
           submitted_at: DateTime.t() | nil,
+          deleted_at: DateTime.t() | nil,
           assignment_id: Ecto.UUID.t() | nil,
           labeler_id: Ecto.UUID.t() | nil,
           schema_version_id: Ecto.UUID.t() | nil,
@@ -48,7 +50,8 @@ defmodule Anvil.Schema.Label do
       :schema_version_id,
       :payload,
       :blob_pointer,
-      :submitted_at
+      :submitted_at,
+      :deleted_at
     ])
     |> validate_required([:assignment_id, :labeler_id, :schema_version_id, :payload])
     |> foreign_key_constraint(:assignment_id)

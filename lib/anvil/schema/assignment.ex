@@ -9,6 +9,26 @@ defmodule Anvil.Schema.Assignment do
   use Ecto.Schema
   import Ecto.Changeset
 
+  @type t :: %__MODULE__{
+          id: Ecto.UUID.t() | nil,
+          sample_id: Ecto.UUID.t() | nil,
+          status: :pending | :reserved | :completed | :timed_out | :requeued | :skipped,
+          reserved_at: DateTime.t() | nil,
+          deadline: DateTime.t() | nil,
+          timeout_seconds: integer() | nil,
+          version: integer(),
+          requeue_attempts: integer(),
+          requeue_delay_until: DateTime.t() | nil,
+          skip_reason: String.t() | nil,
+          queue_id: Ecto.UUID.t() | nil,
+          labeler_id: Ecto.UUID.t() | nil,
+          queue: Anvil.Schema.Queue.t() | Ecto.Association.NotLoaded.t() | nil,
+          labeler: Anvil.Schema.Labeler.t() | Ecto.Association.NotLoaded.t() | nil,
+          labels: [Anvil.Schema.Label.t()] | Ecto.Association.NotLoaded.t(),
+          inserted_at: DateTime.t() | nil,
+          updated_at: DateTime.t() | nil
+        }
+
   @primary_key {:id, :binary_id, autogenerate: true}
   @foreign_key_type :binary_id
 
