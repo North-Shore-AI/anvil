@@ -2,7 +2,7 @@
 
 # Anvil
 
-<img src="assets/anvil.svg" alt="Anvil Logo" width="280"/>
+<img src="assets/anvil.svg" alt="Anvil Logo" width="392"/>
 
 </div>
 
