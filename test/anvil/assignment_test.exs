@@ -143,11 +143,9 @@ defmodule Anvil.AssignmentTest do
     test "returns true when deadline is in past" do
       assignment = Assignment.new(sample_id: "s1", labeler_id: "l1", queue_id: "q1")
       {:ok, in_progress} = Assignment.start(assignment, 1)
+      past_deadline = %{in_progress | deadline: DateTime.add(in_progress.started_at, -1, :second)}
 
-      # Wait a bit
-      Process.sleep(1500)
-
-      assert Assignment.past_deadline?(in_progress)
+      assert Assignment.past_deadline?(past_deadline)
     end
   end
 
@@ -166,14 +164,15 @@ defmodule Anvil.AssignmentTest do
 
     test "returns elapsed time when completed" do
       assignment = Assignment.new(sample_id: "s1", labeler_id: "l1", queue_id: "q1")
-      {:ok, in_progress} = Assignment.start(assignment, 3600)
+      started_at = DateTime.add(DateTime.utc_now(), -5, :second)
 
-      Process.sleep(100)
+      {:ok, in_progress} = Assignment.start(assignment, 3600)
+      in_progress = %{in_progress | started_at: started_at}
 
       {:ok, completed} = Assignment.complete(in_progress, "label_123")
 
       time = Assignment.labeling_time_seconds(completed)
-      assert time >= 0
+      assert_in_delta time, 5, 1
     end
   end
 

@@ -105,7 +105,9 @@ defmodule Anvil.Assignment do
   Skips an assignment with an optional reason.
   """
   @spec skip(t(), String.t() | nil) :: {:ok, t()} | {:error, term()}
-  def skip(%__MODULE__{status: :in_progress} = assignment, reason \\ nil) do
+  def skip(assignment, reason \\ nil)
+
+  def skip(%__MODULE__{status: :in_progress} = assignment, reason) do
     {:ok,
      %{
        assignment
