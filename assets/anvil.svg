@@ -1,0 +1,71 @@
+<svg width="720" height="720" viewBox="0 0 320 320" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bgGradient" x1="20" y1="10" x2="310" y2="300" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#0a1024"/>
+      <stop offset="0.3" stop-color="#122f58"/>
+      <stop offset="0.6" stop-color="#16243d"/>
+      <stop offset="1" stop-color="#0d1c29"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="50%" cy="42%" r="65%">
+      <stop offset="0" stop-color="#1bffe4" stop-opacity="0.7"/>
+      <stop offset="0.5" stop-color="#9cf8ff" stop-opacity="0.25"/>
+      <stop offset="1" stop-color="#12253a" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="edgeGradient" x1="40" y1="40" x2="280" y2="280" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#48ffe1" stop-opacity="0.9"/>
+      <stop offset="0.5" stop-color="#8acbff" stop-opacity="0.6"/>
+      <stop offset="1" stop-color="#ffb45c" stop-opacity="0.9"/>
+    </linearGradient>
+    <linearGradient id="anvilMetal" x1="80" y1="120" x2="240" y2="240" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#ffd7a0"/>
+      <stop offset="0.35" stop-color="#ff8f3a"/>
+      <stop offset="0.7" stop-color="#d250ff"/>
+      <stop offset="1" stop-color="#6de8ff"/>
+    </linearGradient>
+    <linearGradient id="heatEdge" x1="120" y1="110" x2="210" y2="190" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#ffe8bb" stop-opacity="0.9"/>
+      <stop offset="0.5" stop-color="#ff7a3a" stop-opacity="0.8"/>
+      <stop offset="1" stop-color="#f5e5ff" stop-opacity="0.2"/>
+    </linearGradient>
+    <filter id="softGlow" x="-20" y="-20" width="360" height="360" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="8" stdDeviation="12" flood-color="#0b0f1c" flood-opacity="0.6"/>
+      <feDropShadow dx="0" dy="0" stdDeviation="20" flood-color="#2bffe4" flood-opacity="0.18"/>
+    </filter>
+    <filter id="sparkBlur" x="-10" y="-10" width="340" height="340" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation="1.5"/>
+    </filter>
+    <linearGradient id="gridStroke" x1="0" y1="0" x2="0" y2="320" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#7fffe7" stop-opacity="0.12"/>
+      <stop offset="1" stop-color="#ffc188" stop-opacity="0.05"/>
+    </linearGradient>
+  </defs>
+  <rect width="320" height="320" fill="#060a14"/>
+  <g filter="url(#softGlow)">
+    <polygon points="160,14 274,82 274,238 160,306 46,238 46,82" fill="url(#bgGradient)" stroke="url(#edgeGradient)" stroke-width="4"/>
+    <polygon points="160,40 252,94 252,226 160,280 68,226 68,94" fill="url(#glow)" stroke="#46ffe2" stroke-opacity="0.25" stroke-width="2"/>
+  </g>
+  <g opacity="0.4">
+    <path d="M70 120 L250 200" stroke="url(#gridStroke)" stroke-width="1" stroke-dasharray="6 8"/>
+    <path d="M90 230 L230 140" stroke="url(#gridStroke)" stroke-width="1" stroke-dasharray="4 10"/>
+    <circle cx="114" cy="142" r="2.4" fill="#7ffff3"/>
+    <circle cx="214" cy="214" r="2.4" fill="#ffb57f"/>
+    <circle cx="176" cy="118" r="2.2" fill="#c7e9ff"/>
+  </g>
+  <g transform="translate(-2 -2)">
+    <path d="M90 154 H226 C233 154 243 148 250 140 L268 126 H82 L100 140 C112 150 122 154 136 154 Z" fill="url(#anvilMetal)" opacity="0.92" transform="translate(-13 0)"/>
+    <path d="M96 178 H220 L210 198 L170 206 L184 232 H124 L138 206 L102 198 Z" fill="url(#anvilMetal)"/>
+    <path d="M130 136 H214 C223 136 233 126 236 116 L240 104 H112 L118 118 C122 130 124 136 130 136 Z" fill="url(#heatEdge)" opacity="0.85"/>
+    <path d="M96 178 H220 L210 198 L170 206 L184 232 H124 L138 206 L102 198 Z" fill="url(#heatEdge)" opacity="0.5"/>
+    <rect x="146" y="228" width="40" height="12" rx="3" fill="#0d182a" opacity="0.7"/>
+    <rect x="134" y="240" width="64" height="10" rx="3" fill="#1b2d3f" opacity="0.9"/>
+    <path d="M168 146 C188 148 204 150 214 148 C226 146 238 140 246 132" stroke="#ffe0bf" stroke-width="3" stroke-linecap="round" stroke-opacity="0.7"/>
+  </g>
+  <g filter="url(#sparkBlur)">
+    <path d="M156 108 L162 94 M170 112 L178 92 M188 108 L198 90" stroke="#f4ffbc" stroke-width="3" stroke-linecap="round"/>
+    <path d="M154 110 L164 108 M172 112 L182 108 M190 110 L200 106" stroke="#ff9c55" stroke-width="2" stroke-linecap="round" stroke-opacity="0.7"/>
+    <circle cx="176" cy="98" r="4.5" fill="#ffefaa" fill-opacity="0.85"/>
+    <circle cx="176" cy="98" r="12" fill="#ff7b3c" fill-opacity="0.18"/>
+  </g>
+  <path d="M160 26 L170 32 L160 38 L150 32 Z" fill="#6dffe8" fill-opacity="0.8"/>
+  <path d="M46 238 L160 306 L274 238" stroke="#46ffe2" stroke-width="2" stroke-opacity="0.5"/>
+</svg>
