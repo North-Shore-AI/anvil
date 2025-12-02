@@ -63,14 +63,16 @@ defmodule Anvil.MixProject do
         "Changelog" => "#{@source_url}/blob/main/CHANGELOG.md"
       },
       maintainers: ["North-Shore-AI"],
-      files: ~w(lib .formatter.exs mix.exs README.md LICENSE CHANGELOG.md)
+      files: ~w(lib assets assets/anvil.svg .formatter.exs mix.exs README.md LICENSE CHANGELOG.md)
     ]
   end
 
   defp docs do
     [
       main: "Anvil",
-      extras: ["README.md", "CHANGELOG.md"],
+      extras: ["README.md", "CHANGELOG.md", "LICENSE"],
+      assets: %{"assets" => "assets"},
+      logo: "assets/anvil.svg",
       source_ref: "v#{@version}",
       source_url: @source_url,
       groups_for_modules: [
