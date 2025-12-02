@@ -6,8 +6,11 @@
 
 </div>
 
-[![Hex.pm](https://img.shields.io/hexpm/v/anvil.svg)](https://hex.pm/packages/anvil)
-[![Documentation](https://img.shields.io/badge/docs-hexpm-blue.svg)](https://hexdocs.pm/anvil)
+[![Hex.pm](https://img.shields.io/hexpm/v/anvil_ex.svg)](https://hex.pm/packages/anvil_ex)
+[![Documentation](https://img.shields.io/badge/docs-hexpm-blue.svg)](https://hexdocs.pm/anvil_ex)
+[![Downloads](https://img.shields.io/hexpm/dt/anvil_ex.svg)](https://hex.pm/packages/anvil_ex)
+[![License](https://img.shields.io/github/license/North-Shore-AI/anvil.svg)](LICENSE)
+[![GitHub](https://img.shields.io/badge/github-North--Shore--AI%2Fanvil-blue?logo=github)](https://github.com/North-Shore-AI/anvil)
 
 Labeling queue and governance toolkit for human-in-the-loop workflows. Anvil provides GenServer-based queues for fast, in-memory work plus a Postgres/Oban pipeline for production-grade exports, telemetry, and retention.
 
