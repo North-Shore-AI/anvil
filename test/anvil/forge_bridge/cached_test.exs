@@ -1,5 +1,5 @@
 defmodule Anvil.ForgeBridge.CachedTest do
-  use ExUnit.Case
+  use Supertester.ExUnitFoundation, isolation: :full_isolation
 
   alias Anvil.ForgeBridge.Cached
   alias Anvil.ForgeBridge.SampleDTO

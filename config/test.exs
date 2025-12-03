@@ -8,6 +8,11 @@ config :anvil, Anvil.Repo,
   pool: Ecto.Adapters.SQL.Sandbox,
   pool_size: 10
 
+config :anvil,
+  start_repo: true,
+  start_oban: true,
+  api_server: [enabled: false]
+
 config :logger, level: :warning
 
 # Configure Oban for testing (inline execution, no queues)

@@ -35,8 +35,9 @@ defmodule Anvil.Auth.TenantContext do
   """
 
   @type tenant_id :: String.t()
-  @type tenant_resource :: %{tenant_id: tenant_id()}
-  @type actor :: %{tenant_id: tenant_id()}
+  @type tenant_scopeable :: %{required(:tenant_id) => tenant_id(), optional(atom()) => term()}
+  @type tenant_resource :: tenant_scopeable()
+  @type actor :: tenant_scopeable()
   @type error_reason :: :tenant_mismatch | :forbidden_cross_tenant_access
 
   @doc """

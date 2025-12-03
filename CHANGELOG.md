@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- `/v1` REST surface backed by shared `labeling_ir` structs (queues, assignments, labels, schemas, datasets) with tenant/namespace metadata.
+- Governance updates to tolerate unknown fields in label payloads and avoid component forks per ADR-002.
+
 ## [0.1.0] - 2024-12-01
 
 ### Added

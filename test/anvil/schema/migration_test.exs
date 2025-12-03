@@ -1,12 +1,13 @@
 defmodule Anvil.Schema.MigrationTest do
   # Use async: false to avoid sandbox ownership conflicts
-  use ExUnit.Case, async: false
+  use Supertester.ExUnitFoundation, isolation: :full_isolation
 
   alias Anvil.Schema.{Migration, SchemaVersion}
   alias Anvil.Repo
 
   setup do
     :ok = Ecto.Adapters.SQL.Sandbox.checkout(Repo)
+    Ecto.Adapters.SQL.Sandbox.mode(Repo, {:shared, self()})
 
     queue_id = Ecto.UUID.generate()
 

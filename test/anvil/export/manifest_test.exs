@@ -1,5 +1,5 @@
 defmodule Anvil.Export.ManifestTest do
-  use ExUnit.Case, async: true
+  use Supertester.ExUnitFoundation, isolation: :full_isolation
 
   alias Anvil.Export.Manifest
 
