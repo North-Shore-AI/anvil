@@ -7,9 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.1] - 2025-12-02
+
 ### Added
-- `/v1` REST surface backed by shared `labeling_ir` structs (queues, assignments, labels, schemas, datasets) with tenant/namespace metadata.
-- Governance updates to tolerate unknown fields in label payloads and avoid component forks per ADR-002.
+- `/v1` REST surface backed by shared `labeling_ir` structs with new Ecto schemas (Queue, Schema, Sample, Assignment, Label, Dataset), tenant-scoped migrations, and assignment retrieval using stored samples.
+- `Anvil.API.Router` and `Anvil.API.State` wired through Plug.Cowboy to expose CRUD operations with tenant isolation enforced via `X-Tenant-ID` and actor context.
+
+### Changed
+- Label submission tolerates unknown fields in payloads to prevent component forks per ADR-002.
+- Test environment uses Supertester full isolation with sandbox mode enabled for migration setup.
 
 ## [0.1.0] - 2024-12-01
 
@@ -30,5 +36,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `Anvil.Storage` behaviour with ETS implementation
 - Comprehensive test suite using Supertester
 
-[Unreleased]: https://github.com/North-Shore-AI/anvil/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/North-Shore-AI/anvil/compare/v0.1.1...HEAD
+[0.1.1]: https://github.com/North-Shore-AI/anvil/releases/tag/v0.1.1
 [0.1.0]: https://github.com/North-Shore-AI/anvil/releases/tag/v0.1.0
