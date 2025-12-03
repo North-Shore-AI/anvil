@@ -1,5 +1,5 @@
 defmodule Anvil.Workers.RetentionSweepTest do
-  use ExUnit.Case, async: false
+  use Supertester.ExUnitFoundation, isolation: :full_isolation
   use Oban.Testing, repo: Anvil.Repo
 
   alias Anvil.Repo
@@ -8,6 +8,7 @@ defmodule Anvil.Workers.RetentionSweepTest do
 
   setup do
     :ok = Ecto.Adapters.SQL.Sandbox.checkout(Repo)
+    Ecto.Adapters.SQL.Sandbox.mode(Repo, {:shared, self()})
 
     :ok
   end

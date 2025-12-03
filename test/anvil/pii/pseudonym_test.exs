@@ -1,5 +1,5 @@
 defmodule Anvil.PII.PseudonymTest do
-  use ExUnit.Case, async: false
+  use Supertester.ExUnitFoundation, isolation: :full_isolation
 
   alias Anvil.PII.Pseudonym
   alias Anvil.Repo
@@ -7,6 +7,7 @@ defmodule Anvil.PII.PseudonymTest do
 
   setup do
     :ok = Ecto.Adapters.SQL.Sandbox.checkout(Anvil.Repo)
+    Ecto.Adapters.SQL.Sandbox.mode(Anvil.Repo, {:shared, self()})
     :ok
   end
 

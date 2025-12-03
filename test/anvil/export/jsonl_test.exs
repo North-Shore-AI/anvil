@@ -8,6 +8,7 @@ defmodule Anvil.Export.JSONLTest do
   setup do
     # Start Ecto Sandbox
     :ok = Ecto.Adapters.SQL.Sandbox.checkout(Anvil.Repo)
+    Ecto.Adapters.SQL.Sandbox.mode(Anvil.Repo, {:shared, self()})
 
     # Create test data
     {:ok, labeler1} =

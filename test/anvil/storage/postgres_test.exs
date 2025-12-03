@@ -1,6 +1,6 @@
 defmodule Anvil.Storage.PostgresTest do
   # Use async: false to avoid sandbox ownership conflicts
-  use ExUnit.Case, async: false
+  use Supertester.ExUnitFoundation, isolation: :full_isolation
 
   alias Anvil.Storage.Postgres
   alias Anvil.{Assignment, Label}
@@ -8,6 +8,7 @@ defmodule Anvil.Storage.PostgresTest do
   # Use Ecto sandbox for isolation
   setup do
     :ok = Ecto.Adapters.SQL.Sandbox.checkout(Anvil.Repo)
+    Ecto.Adapters.SQL.Sandbox.mode(Anvil.Repo, {:shared, self()})
     {:ok, state} = Postgres.init(repo: Anvil.Repo)
 
     # Create required foreign key records

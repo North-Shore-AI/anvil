@@ -1,5 +1,5 @@
 defmodule Anvil.Auth.TenantContextTest do
-  use ExUnit.Case, async: true
+  use Supertester.ExUnitFoundation, isolation: :full_isolation
 
   alias Anvil.Auth.TenantContext
 

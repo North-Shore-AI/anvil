@@ -8,6 +8,11 @@ config :anvil, Anvil.Repo,
 
 config :anvil, ecto_repos: [Anvil.Repo]
 
+# API server configuration (Plug.Cowboy)
+config :anvil, :api_server,
+  enabled: true,
+  port: 4101
+
 # ForgeBridge Configuration
 config :anvil,
   forge_bridge_backend: Anvil.ForgeBridge.Direct,

@@ -31,6 +31,8 @@ defmodule Anvil.MixProject do
   defp deps do
     [
       {:jason, "~> 1.4"},
+      {:plug, "~> 1.15"},
+      {:plug_cowboy, "~> 2.6"},
       {:ecto_sql, "~> 3.10"},
       {:postgrex, "~> 0.17"},
       {:oban, "~> 2.17"},
@@ -39,6 +41,7 @@ defmodule Anvil.MixProject do
       {:cachex, "~> 3.6"},
       {:fuse, "~> 2.5"},
       {:httpoison, "~> 2.2"},
+      {:labeling_ir, "~> 0.1.0"},
       {:ex_doc, "~> 0.31", only: :dev, runtime: false},
       {:dialyxir, "~> 1.4", only: [:dev, :test], runtime: false},
       {:supertester, "~> 0.3.1", only: :test}
