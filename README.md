@@ -10,6 +10,14 @@
 
 Labeling queue and governance toolkit for human-in-the-loop workflows. Anvil provides GenServer-based queues for fast, in-memory work plus a Postgres/Oban pipeline for production-grade exports, telemetry, and retention.
 
+## Installation
+
+Add Anvil to your dependencies:
+
+```elixir
+{:anvil_ex, "~> 0.1.1"}
+```
+
 ## Highlights
 - Schema-driven validation with typed fields (`:text`, `:select`, `:multiselect`, `:range`, `:number`, `:boolean`, `:date`, `:datetime`)
 - Pluggable assignment policies: round-robin, random, weighted expertise, redundancy (k labels per sample), or custom policy modules

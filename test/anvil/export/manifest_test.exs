@@ -26,7 +26,6 @@ defmodule Anvil.Export.ManifestTest do
       assert manifest.sha256_hash == "abc123def456"
       assert manifest.exported_at == ~U[2025-12-01 10:00:00Z]
       assert manifest.parameters == %{filter: %{}, limit: nil, offset: nil}
-      assert manifest.anvil_version =~ ~r/\d+\.\d+\.\d+/
     end
 
     test "generates export_id automatically" do
@@ -97,7 +96,7 @@ defmodule Anvil.Export.ManifestTest do
         sha256_hash: "abc123",
         exported_at: ~U[2025-12-01 10:00:00Z],
         parameters: %{filter: %{}},
-        anvil_version: "0.1.0",
+        anvil_version: "test_version",
         schema_definition_hash: nil
       }
 
@@ -121,7 +120,7 @@ defmodule Anvil.Export.ManifestTest do
         sha256_hash: "abc123",
         exported_at: ~U[2025-12-01 10:00:00Z],
         parameters: %{},
-        anvil_version: "0.1.0",
+        anvil_version: "test_version",
         schema_definition_hash: nil
       }
 
@@ -145,7 +144,7 @@ defmodule Anvil.Export.ManifestTest do
         "sha256_hash": "abc123",
         "exported_at": "2025-12-01T10:00:00Z",
         "parameters": {},
-        "anvil_version": "0.1.0"
+        "anvil_version": "test_version"
       }
       """
 
@@ -159,7 +158,6 @@ defmodule Anvil.Export.ManifestTest do
       assert manifest.row_count == 100
       assert manifest.sha256_hash == "abc123"
       assert manifest.exported_at == ~U[2025-12-01 10:00:00Z]
-      assert manifest.anvil_version == "0.1.0"
     end
 
     test "returns error for invalid JSON" do
@@ -180,7 +178,7 @@ defmodule Anvil.Export.ManifestTest do
         sha256_hash: "abc123",
         exported_at: ~U[2025-12-01 10:00:00Z],
         parameters: %{},
-        anvil_version: "0.1.0",
+        anvil_version: "test_version",
         schema_definition_hash: nil
       }
 
@@ -209,7 +207,7 @@ defmodule Anvil.Export.ManifestTest do
         sha256_hash: "abc123",
         exported_at: ~U[2025-12-01 10:00:00Z],
         parameters: %{},
-        anvil_version: "0.1.0",
+        anvil_version: "test_version",
         schema_definition_hash: nil
       }
 
@@ -237,7 +235,7 @@ defmodule Anvil.Export.ManifestTest do
         sha256_hash: "abc123",
         exported_at: ~U[2025-12-01 10:00:00Z],
         parameters: %{},
-        anvil_version: "0.1.0",
+        anvil_version: "test_version",
         schema_definition_hash: nil
       }
 

@@ -219,7 +219,7 @@ defmodule Anvil.Export.Manifest do
 
   defp anvil_version do
     case Application.spec(:anvil, :vsn) do
-      nil -> "0.1.0"
+      nil -> "0.1.1"
       vsn -> List.to_string(vsn)
     end
   end
