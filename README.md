@@ -118,6 +118,16 @@ labels = Anvil.Queue.get_labels(queue)
 ## PII, retention, and governance
 - PII metadata on fields (`pii`, `retention_days`, `redaction_policy`) drives redaction and retention.
 - `Anvil.PII.Redactor` supports strip/truncate/hash/regex policies and payload redaction modes (`:none`, `:automatic`, `:aggressive`).
+
+## HTTP API (for clients like Ingot)
+- Anvil ships a Plug/Cowboy server for `/v1` IR endpoints. Enable it with:
+
+  ```elixir
+  # config/config.exs or runtime.exs
+  config :anvil, :api_server, enabled: true, port: 4101
+  ```
+
+- In test, the server is disabled by default. Start your Anvil app (or release) to expose the API for HTTP clients; Ingot’s default adapter expects this.
 - `Anvil.PII.Retention` and the `Anvil.Workers.RetentionSweep` Oban job enforce retention windows and optional soft/hard deletion.
 - Labeler pseudonyms available via `Anvil.PII.Pseudonym`.
 

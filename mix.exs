@@ -44,7 +44,7 @@ defmodule Anvil.MixProject do
       {:labeling_ir, "~> 0.1.0"},
       {:ex_doc, "~> 0.31", only: :dev, runtime: false},
       {:dialyxir, "~> 1.4", only: [:dev, :test], runtime: false},
-      {:supertester, "~> 0.3.1", only: :test}
+      {:supertester, "~> 0.4.0", only: :test}
     ]
   end
 
