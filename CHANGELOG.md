@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-01-25
+
+### Added
+
+- `Anvil.PII.Clinical` module for healthcare-specific PII detection and redaction
+  - Standard patterns: MRN, DOB, NPI, DEA, Medicare/Medicaid, insurance IDs, medical dates, room/bed numbers
+  - Aggressive patterns: Provider names, facility names, street addresses
+  - `patterns/0` and `aggressive_patterns/0` functions for pattern retrieval
+  - `redact/2` function with `:standard` and `:aggressive` modes
+  - `detect/1` function for PII type detection
+  - Full integration with `Anvil.PII.Redactor` for export workflows
+- Comprehensive test suite for clinical PII patterns
+
+### Documentation
+
+- Added clinical PII pattern documentation to module docs
+- Examples for integration with export pipelines
+
 ## [0.1.1] - 2025-12-02
 
 ### Added
@@ -36,6 +54,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `Anvil.Storage` behaviour with ETS implementation
 - Comprehensive test suite using Supertester
 
-[Unreleased]: https://github.com/North-Shore-AI/anvil/compare/v0.1.1...HEAD
+[Unreleased]: https://github.com/North-Shore-AI/anvil/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/North-Shore-AI/anvil/releases/tag/v0.2.0
 [0.1.1]: https://github.com/North-Shore-AI/anvil/releases/tag/v0.1.1
 [0.1.0]: https://github.com/North-Shore-AI/anvil/releases/tag/v0.1.0

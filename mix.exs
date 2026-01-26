@@ -1,7 +1,7 @@
 defmodule Anvil.MixProject do
   use Mix.Project
 
-  @version "0.1.1"
+  @version "0.2.0"
   @source_url "https://github.com/North-Shore-AI/anvil"
 
   def project do
@@ -42,9 +42,9 @@ defmodule Anvil.MixProject do
       {:fuse, "~> 2.5"},
       {:httpoison, "~> 2.2"},
       {:labeling_ir, "~> 0.1.0"},
-      {:ex_doc, "~> 0.31", only: :dev, runtime: false},
+      {:ex_doc, "~> 0.40.0", only: :dev, runtime: false},
       {:dialyxir, "~> 1.4", only: [:dev, :test], runtime: false},
-      {:supertester, "~> 0.4.0", only: :test}
+      {:supertester, "~> 0.5.1", only: :test}
     ]
   end
 
